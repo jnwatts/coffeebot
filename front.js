@@ -54,8 +54,10 @@ function init() {
                         mood = "😒";
                     } else if (delta < 5*60*60*1000) {
                         mood = "🙁";
-                    } else if (delta < 8*60*60*1000) {
+                    } else if (delta < 24*60*60*1000) {
                         mood = "😦";
+                    } else {
+                        mood = "❤️💀☕️";
                     }
                 }
             } else {
