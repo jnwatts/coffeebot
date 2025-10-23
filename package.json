@@ -1,0 +1,16 @@
+{
+  "name": "coffeebot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "date-fns": "^2.22.1",
+    "matrix-bot-sdk": "^0.5.18"
+  }
+}
