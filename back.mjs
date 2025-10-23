@@ -127,7 +127,6 @@ function fresh(when) {
 }
 
 function brew() {
-        var roomId = storage.readValue("coffee_room_id");
         var brew_delay = storage.readValue("brew_delay")
         storage.storeValue("last_coffee", chrono.parseDate("in " + brew_delay).toISOString());
         var last_coffee = storage.readValue("last_coffee");
@@ -148,6 +147,7 @@ function brew_alert(when) {
     brew_alert_timeout = setTimeout(() => {
         console.log("Ding!");
         if (client) {
+            var roomId = storage.readValue("coffee_room_id");
             logged_send(client, roomId, "🔔 Coffee should be ready! ☕");
         }
     }, differenceInMilliseconds(when, now));
