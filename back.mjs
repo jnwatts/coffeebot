@@ -12,16 +12,11 @@ import {
 import * as chrono from 'chrono-node';
 import http from "http";
 import * as log_timestamp from "log-timestamp";
+import fs from "fs";
 
 const storage = new SimpleFsStorageProvider("coffeebot-storage.json");
-const client = new MatrixClient(
-    storage.readValue("homeserver_url"),
-    storage.readValue("access_token"),
-    storage);
-
-storage.storeValue("last_command", new Date().toISOString());
-client.start().then(initBot);
-client.on("room.message", handleCommand);
+var client = null;
+var brew_alert_timeout = null;
 
 function logged_send(client, roomId, message) {
     console.log(">> " + roomId + ": " + message);
@@ -29,29 +24,16 @@ function logged_send(client, roomId, message) {
 }
 
 async function initBot() {
-    var rooms = await client.getJoinedRooms();
-    var roomId = storage.readValue("coffee_room_id");
-    if (!rooms.includes(roomId))
-        client.joinRoom(roomId);
+    if (client) {
+        var rooms = await client.getJoinedRooms();
+        var roomId = storage.readValue("coffee_room_id");
+        if (!rooms.includes(roomId))
+            client.joinRoom(roomId);
+    }
     console.log("Time to make the coffee!");
-    var now = new Date();
     var last_coffee = storage.readValue("last_coffee");
     if (last_coffee) {
-        var last_coffee_date = parseISO(last_coffee);
-        var now = new Date();
-        var dist = formatDistance(last_coffee_date, now);
-        if (last_coffee_date > now) {
-            console.log("Coffee in the FUTURE! (" + differenceInMilliseconds(last_coffee_date, now) + "ms)");
-            setTimeout(() => {
-                var current_last_coffee = storage.readValue("last_coffee");
-                if (current_last_coffee == last_coffee) {
-                    console.log("Ding!");
-                    logged_send(client, roomId, "🔔 Coffee should be ready! ☕");
-                } else {
-                    console.log("Would ding, but the date changed, so assuming new !brew or !fresh.")
-                }
-            }, differenceInMilliseconds(last_coffee_date, now));
-        }
+        brew_alert(parseISO(last_coffee));
     }
 }
 
@@ -100,13 +82,6 @@ async function handleCommand(roomId, event) {
     } else if (body.startsWith("!help")) {
         logged_send(client, roomId, "I'll let you know when I'm told coffee has been brewed! Otherwise, you can type \"!coffee\" to query how long it's been since the last brew.");
     } else if (body.startsWith("!fresh")) {
-        var last_coffee;
-        try {
-            last_coffee = chrono.parseDate(body).toISOString();
-        } catch (error) {
-            last_coffee = new Date().toISOString();
-        }
-        storage.storeValue("last_coffee", last_coffee);
         client.sendEvent(roomId, "m.reaction", {
             "m.relates_to": {
                 event_id: event["event_id"],
@@ -121,6 +96,7 @@ async function handleCommand(roomId, event) {
                 rel_type: "m.annotation",
             },
         });
+        fresh(body);
     } else if (body.startsWith("!brew")) {
         client.sendEvent(roomId, "m.reaction", {
             "m.relates_to": {
@@ -133,29 +109,134 @@ async function handleCommand(roomId, event) {
     }
 };
 
+function status() {
+    var status = {
+        "last_coffee": storage.readValue("last_coffee"),
+    };
+    return JSON.stringify(status);
+}
+
+function fresh(when) {
+    var last_coffee;
+    try {
+        last_coffee = chrono.parseDate(when).toISOString();
+    } catch (error) {
+        last_coffee = new Date().toISOString();
+    }
+    storage.storeValue("last_coffee", last_coffee);
+}
+
 function brew() {
         var roomId = storage.readValue("coffee_room_id");
         var brew_delay = storage.readValue("brew_delay")
         storage.storeValue("last_coffee", chrono.parseDate("in " + brew_delay).toISOString());
         var last_coffee = storage.readValue("last_coffee");
         var last_coffee_date = parseISO(last_coffee);
-        logged_send(client, roomId, "Brewing, ready in " + brew_delay);
-        setTimeout(() => {
+        brew_alert(last_coffee_date);
+}
+
+function brew_alert(when) {
+    if (brew_alert_timeout) {
+        clearTimeout(brew_alert_timeout);
+    }
+    var now = new Date();
+    if (when < now) {
+        console.log("Fresh " + formatDistance(when, now) + " ago");
+        return;
+    }
+    console.log("Will be ready in " + formatDistance(when, now));
+    brew_alert_timeout = setTimeout(() => {
+        console.log("Ding!");
+        if (client) {
             logged_send(client, roomId, "🔔 Coffee should be ready! ☕");
-        }, differenceInMilliseconds(last_coffee_date, new Date()));
+        }
+    }, differenceInMilliseconds(when, now));
 }
 
 async function handleRequest(req, res) {
-    if (req.url == storage.readValue('http_prefix') + '/brew') {
-        storage.storeValue("last_coffee", new Date().toISOString());
+    var url = req.url;
+    var remote_ip = req.socket.remoteAddress;
+    var log_request = false;
+    if ('x-forwarded-for' in req.headers) {
+        remote_ip = req.headers['x-forwarded-for'];
+    }
+    var http_prefix = storage.readValue('http_prefix');
+
+    if (url.includes('..') || url.includes('~')) {
+        return;
+    }
+
+    if (url.endsWith('/')) {
+        url = req.url.substr(0,req.url.length - 1);
+    } else if (url == http_prefix) {
+        res.setHeader('Location', http_prefix + '/');
+        res.writeHead(302);
+        res.end('<head><meta http-equiv="refresh" content="0;url='+http_prefix+'/" /></head>');
+        return;
+    }
+
+    if (!url.startsWith(http_prefix)) {
+        res.writeHead(404);
+        res.end('Not found');
+        return;
+    }
+
+    url = url.substring(http_prefix.length);
+    if (url.length == 0) {
+        url = '/';
+    }
+    
+    if (url == '/brew') {
         res.writeHead(200);
         res.end('Thanks!');
         brew();
-        console.log("<< HTTP," + req.ip + ": /brew")
-    } else  {
+        log_request = true;
+    } else if (url == '/fresh') {
+        res.writeHead(200);
+        res.end('Thanks!');
+        fresh();
+        log_request = true;
+    } else if (url == '/status') {
+        res.setHeader('Content-Type', 'application/json');
+        res.writeHead(200);
+        res.end(status());
+        log_request = false;
+    } else if (url == '/') {
+        var f = fs.readFileSync('dist/front.html', 'utf8');
+        res.writeHead(200);
+        res.end(f);
+    } else if (fs.existsSync('dist'+url)) {
+        var f = fs.readFileSync('dist'+url, 'utf8');
+        if (url.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        } else if (url.endsWith('.html')) {
+            res.setHeader('Content-Type', 'text/html');
+        } else if (url.endsWith('.js.map')) {
+            res.setHeader('Content-Type', 'application/json');
+        }
+        res.writeHead(200);
+        res.end(f);
+    } else {
         res.writeHead(404);
         res.end('Not found');
     }
+    if (log_request) {
+        console.log("<< HTTP," + remote_ip + "," + url);
+    }
+}
+
+storage.storeValue("last_command", new Date().toISOString());
+
+if (!storage.readValue("skip_matrix")) {
+    client = new MatrixClient(
+        storage.readValue("homeserver_url"),
+        storage.readValue("access_token"),
+        storage);
+    console.log("Joining matrix...");
+    client.start().then(initBot);
+    client.on("room.message", handleCommand);
+} else {
+    setTimeout(initBot, 100);
 }
 
 const server = http.createServer(handleRequest);

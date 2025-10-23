@@ -1,18 +1,24 @@
 {
   "name": "coffeebot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
-  "main": "index.js",
+  "source": [
+    "back.mjs",
+    "front.html"
+  ],
   "scripts": {
-    "start": "node index.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node back.mjs",
+    "build": "rm -Rf dist; parcel build front.html --public-url /coffeebot",
+    "clean": "rm -Rf dist node_modules .parcel-cache"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
     "chrono-node": "^2.3.0",
     "date-fns": "^2.22.1",
+    "jquery": "^3.6.0",
     "log-timestamp": "^0.3.0",
-    "matrix-bot-sdk": "^0.5.18"
+    "matrix-bot-sdk": "^0.5.18",
+    "parcel": "^2.4.1"
   }
 }
