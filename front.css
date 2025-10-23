@@ -30,6 +30,13 @@ body {
     background-color: #835C3B;
 }
 
+#main {
+    position: absolute;
+    top:  50%;
+    left: 50%;
+    transform: translate(-50%,-60%);
+}
+
 #footer {
     bottom: 0%;
     position: fixed;
