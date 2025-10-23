@@ -12,6 +12,7 @@
   "dependencies": {
     "chrono-node": "^2.3.0",
     "date-fns": "^2.22.1",
+    "log-timestamp": "^0.3.0",
     "matrix-bot-sdk": "^0.5.18"
   }
 }
