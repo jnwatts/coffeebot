@@ -44,6 +44,9 @@ function init() {
     }
 
     update_status();
+    setTimeout(function() {
+        global.location.reload(true);
+    }, 12*60*60*1000); // Page refresh twice a day
 }
 
 Promise.all([
