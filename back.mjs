@@ -79,6 +79,7 @@ async function handleCommand(roomId, event) {
     } else if (body.startsWith("!reset")) {
         storage.storeValue("last_coffee", null);
         logged_send(client, roomId, "I know nothing... 🤐");
+        brew_clear();
     } else if (body.startsWith("!help")) {
         logged_send(client, roomId, "I'll let you know when I'm told coffee has been brewed! Otherwise, you can type \"!coffee\" to query how long it's been since the last brew.");
     } else if (body.startsWith("!fresh")) {
@@ -117,6 +118,7 @@ function status() {
 }
 
 function fresh(when) {
+    brew_clear();
     var last_coffee;
     try {
         last_coffee = chrono.parseDate(when).toISOString();
@@ -127,6 +129,7 @@ function fresh(when) {
 }
 
 function brew() {
+    brew_clear();
         var brew_delay = storage.readValue("brew_delay")
         storage.storeValue("last_coffee", chrono.parseDate("in " + brew_delay).toISOString());
         var last_coffee = storage.readValue("last_coffee");
@@ -134,10 +137,15 @@ function brew() {
         brew_alert(last_coffee_date);
 }
 
-function brew_alert(when) {
+function brew_clear() {
     if (brew_alert_timeout) {
         clearTimeout(brew_alert_timeout);
+        brew_alert_timeout=null;
     }
+}
+
+function brew_alert(when) {
+    brew_clear();
     var now = new Date();
     if (when < now) {
         console.log("Fresh " + formatDistance(when, now) + " ago");
