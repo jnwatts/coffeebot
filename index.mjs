@@ -6,7 +6,8 @@ import {
 import { 
     isBefore,
     parseISO,
-    formatDistance
+    formatDistance,
+    differenceInMilliseconds
 } from 'date-fns';
 import * as chrono from 'chrono-node';
 import http from "http";
@@ -23,9 +24,24 @@ client.on("room.message", handleCommand);
 
 async function initBot() {
     var rooms = await client.getJoinedRooms();
-    if (!rooms.includes(storage.readValue("coffee_room_id")))
-        client.joinRoom(storage.readValue("coffee_room_id"));
+    var roomId = storage.readValue("coffee_room_id");
+    if (!rooms.includes(roomId))
+        client.joinRoom(roomId);
     console.log("Time to make the coffee!");
+    var now = new Date();
+    var last_coffee = storage.readValue("last_coffee");
+    if (last_coffee) {
+        var last_coffee_date = parseISO(last_coffee);
+        var now = new Date();
+        var dist = formatDistance(last_coffee_date, now);
+        if (last_coffee_date > now) {
+            console.log("Coffee in the FUTURE! (" + differenceInMilliseconds(last_coffee_date, now) + "ms)");
+            setTimeout(() => {
+                console.log("Ding!");
+                client.sendText(roomId, "🔔 Coffee should be ready! ☕");
+            }, differenceInMilliseconds(last_coffee_date, now));
+        }
+    }
 }
 
 async function handleCommand(roomId, event) {
@@ -49,11 +65,19 @@ async function handleCommand(roomId, event) {
     storage.storeValue("last_command", new Date().toISOString());
 
     if (body.startsWith("!coffee")) {
+        var now = new Date();
         var last_coffee = storage.readValue("last_coffee");
         if (!last_coffee) {
             client.sendText(roomId, "Sorry, I have no idea when the coffee was last brewed ☹️");
+            return;
+        }
+        var last_coffee_date = parseISO(last_coffee);
+        var now = new Date();
+        var dist = formatDistance(last_coffee_date, now);
+        if (last_coffee_date < now) {
+            client.sendText(roomId, "Coffee was last ready " + dist + " ago");
         } else {
-            client.sendText(roomId, "Coffee was last brewed " + formatDistance(parseISO(last_coffee), new Date()) + " ago");
+            client.sendText(roomId, "Coffee will be ready in about " + dist);
         }
     } else if (body.startsWith("!reset")) {
         storage.storeValue("last_coffee", null);
@@ -61,7 +85,13 @@ async function handleCommand(roomId, event) {
     } else if (body.startsWith("!help")) {
         client.sendText(roomId, "I'll let you know when I'm told coffee has been brewed! Otherwise, you can type \"!coffee\" to query how long it's been since the last brew.");
     } else if (body.startsWith("!fresh")) {
-        storage.storeValue("last_coffee", chrono.parseDate(body).toISOString());
+        var last_coffee;
+        try {
+            last_coffee = chrono.parseDate(body).toISOString();
+        } catch (error) {
+            last_coffee = new Date().toISOString();
+        }
+        storage.storeValue("last_coffee", last_coffee);
         console.log(event);
         client.sendEvent(roomId, "m.reaction", {
             "m.relates_to": {
@@ -77,6 +107,18 @@ async function handleCommand(roomId, event) {
                 rel_type: "m.annotation",
             },
         });
+    } else if (body.startsWith("!brew")) {
+        storage.storeValue("last_coffee", chrono.parseDate("in 2 minutes").toISOString());
+        client.sendEvent(roomId, "m.reaction", {
+            "m.relates_to": {
+                event_id: event["event_id"],
+                key: "👍",
+                rel_type: "m.annotation",
+            },
+        });
+        setTimeout(() => {
+            client.sendText(roomId, "🔔 Coffee should be ready! ☕");
+        }, differenceInMilliseconds(last_coffee_date, now));
     }
 };
 
