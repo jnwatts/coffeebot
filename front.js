@@ -38,22 +38,40 @@ function init() {
 
             var now = new Date();
             var text = formatDistance(last_coffee, now);
+            var mood = "";
             if (last_coffee < now) {
-                if (now - last_coffee < 60*1000) {
+                var delta = now - last_coffee;
+                if (delta < 60*1000) {
                     text = 'now! ☕'
+                    mood = "😁";
                 } else {
                     text = text + ' ago';
+                    if (delta < 15*60*1000) {
+                        mood = "🙂";
+                    } else if (delta < 3*60*60*1000) {
+                        mood = "😐️";
+                    } else if (delta < 4*60*60*1000) {
+                        mood = "😒";
+                    } else if (delta < 5*60*60*1000) {
+                        mood = "🙁";
+                    } else if (delta < 8*60*60*1000) {
+                        mood = "😦";
+                    }
                 }
             } else {
                 if (last_coffee - now < 10*1000) {
                     text = 'just a little bit more...';
+                    mood = "🫣";
                 } else if (last_coffee - now < 60*1000) {
                     text = 'almost there...';
+                    mood = "🫢";
                 } else {
                     text = 'in ' + text;
+                    mood = "🙂";
                 }
             }
             $('#coffee_status').text(text);
+            $('#mood').text(mood);
             window.coffeebot.status_timeout = setTimeout(update_status, 500);
         });
     }
