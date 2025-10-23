@@ -29,3 +29,14 @@ body {
 .btn:hover {
     background-color: #835C3B;
 }
+
+#footer {
+    bottom: 0%;
+    position: fixed;
+    width: 100%;
+    text-align: center;
+}
+
+#fullscreen {
+    color: #603601;
+}

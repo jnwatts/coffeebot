@@ -3,6 +3,7 @@ function init() {
     window.coffeebot = new Object();
     var brew = $('#brew');
     var fresh = $('#fresh');
+    var fullscreen = $('#fullscreen');
 
     brew.click(function(e) {
         e.preventDefault();
@@ -12,6 +13,16 @@ function init() {
     fresh.click(function(e) {
         e.preventDefault();
         $.get('fresh').then(update_status);
+    });
+
+    fullscreen.click(function(e) {
+        e.preventDefault();
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            // $('body').requestFullscreen();
+            document.querySelector("body").requestFullscreen();
+        }
     });
 
     function update_status() {
