@@ -152,6 +152,10 @@ function brew_alert(when) {
         return;
     }
     console.log("Will be ready in " + formatDistance(when, now));
+    if (client) {
+        var roomId = storage.readValue("coffee_room_id");
+        logged_send(client, roomId, "Coffee is brewing! ⏲️");
+    }
     brew_alert_timeout = setTimeout(() => {
         console.log("Ding!");
         if (client) {
