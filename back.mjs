@@ -161,6 +161,12 @@ function brew_alert(when) {
     }, differenceInMilliseconds(when, now));
 }
 
+function fresh_alert() {
+    if (client) {
+        logged_send(client, roomId, "Coffee is fresh now! ☕");
+    }
+}
+
 async function handleRequest(req, res) {
     var url = req.url;
     var remote_ip = req.socket.remoteAddress;
@@ -203,6 +209,7 @@ async function handleRequest(req, res) {
         res.writeHead(200);
         res.end('Thanks!');
         fresh();
+        fresh_alert();
         log_request = true;
     } else if (url == '/status') {
         res.setHeader('Content-Type', 'application/json');
