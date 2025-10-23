@@ -8,6 +8,7 @@ import {
     parseISO,
     formatDistance
 } from 'date-fns';
+import * as chrono from 'chrono-node';
 import http from "http";
 
 const storage = new SimpleFsStorageProvider("coffeebot-storage.json");
@@ -59,6 +60,23 @@ async function handleCommand(roomId, event) {
         client.sendText(roomId, "I know nothing... 🤐");
     } else if (body.startsWith("!help")) {
         client.sendText(roomId, "I'll let you know when I'm told coffee has been brewed! Otherwise, you can type \"!coffee\" to query how long it's been since the last brew.");
+    } else if (body.startsWith("!fresh")) {
+        storage.storeValue("last_coffee", chrono.parseDate(body).toISOString());
+        console.log(event);
+        client.sendEvent(roomId, "m.reaction", {
+            "m.relates_to": {
+                event_id: event["event_id"],
+                key: "☕",
+                rel_type: "m.annotation",
+            },
+        });
+        client.sendEvent(roomId, "m.reaction", {
+            "m.relates_to": {
+                event_id: event["event_id"],
+                key: "⏲️",
+                rel_type: "m.annotation",
+            },
+        });
     }
 };
 
