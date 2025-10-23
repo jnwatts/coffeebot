@@ -18,23 +18,28 @@ const storage = new SimpleFsStorageProvider("coffeebot-storage.json");
 var client = null;
 var brew_alert_timeout = null;
 
-function logged_send(client, roomId, message) {
-    console.log(">> " + roomId + ": " + message);
-    client.sendText(roomId, message);
+function matrix_send_logged(client, roomId, message) {
+    if (client) {
+        console.log(">> " + roomId + ": " + message);
+        client.sendText(roomId, message);
+    } else {
+        console.log("SKIPPED >> " + roomId + ": " + message);
+    }
 }
 
-async function initBot() {
+async function matrix_join() {
     if (client) {
         var rooms = await client.getJoinedRooms();
         var roomId = storage.readValue("coffee_room_id");
         if (!rooms.includes(roomId))
             client.joinRoom(roomId);
     }
+}
+
+async function initBot() {
+    matrix_join();
     console.log("Time to make the coffee!");
-    var last_coffee = storage.readValue("last_coffee");
-    if (last_coffee) {
-        brew_alert(parseISO(last_coffee));
-    }
+    brew_alert();
 }
 
 async function handleCommand(roomId, event) {
@@ -65,23 +70,23 @@ async function handleCommand(roomId, event) {
         var now = new Date();
         var last_coffee = storage.readValue("last_coffee");
         if (!last_coffee) {
-            logged_send(client, roomId, "Sorry, I have no idea when the coffee was last brewed ☹️");
+            matrix_send_logged(client, roomId, "Sorry, I have no idea when the coffee was last brewed ☹️");
             return;
         }
         var last_coffee_date = parseISO(last_coffee);
         var now = new Date();
         var dist = formatDistance(last_coffee_date, now);
         if (last_coffee_date < now) {
-            logged_send(client, roomId, "Coffee was last ready " + dist + " ago");
+            matrix_send_logged(client, roomId, "Coffee was last ready " + dist + " ago");
         } else {
-            logged_send(client, roomId, "Coffee will be ready in about " + dist);
+            matrix_send_logged(client, roomId, "Coffee will be ready in about " + dist);
         }
     } else if (body.startsWith("!reset")) {
         storage.storeValue("last_coffee", null);
-        logged_send(client, roomId, "I know nothing... 🤐");
-        brew_clear();
+        matrix_send_logged(client, roomId, "I know nothing... 🤐");
+        brew_alert_clear();
     } else if (body.startsWith("!help")) {
-        logged_send(client, roomId, "I'll let you know when I'm told coffee has been brewed! Otherwise, you can type \"!coffee\" to query how long it's been since the last brew.");
+        matrix_send_logged(client, roomId, "I'll let you know when I'm told coffee has been brewed! Otherwise, you can type \"!coffee\" to query how long it's been since the last brew.");
     } else if (body.startsWith("!fresh")) {
         client.sendEvent(roomId, "m.reaction", {
             "m.relates_to": {
@@ -118,7 +123,7 @@ function status() {
 }
 
 function fresh(when) {
-    brew_clear();
+    brew_alert_clear();
     var last_coffee;
     try {
         last_coffee = chrono.parseDate(when).toISOString();
@@ -136,46 +141,50 @@ function brew() {
         return false;
     }
 
-    brew_clear();
     var brew_delay = storage.readValue("brew_delay");
     storage.storeValue("last_coffee", chrono.parseDate("in " + brew_delay).toISOString());
-    brew_alert(last_coffee_date);
+    brew_alert();
     return true;
 }
 
-function brew_clear() {
+function brew_alert_clear() {
     if (brew_alert_timeout) {
         clearTimeout(brew_alert_timeout);
         brew_alert_timeout=null;
     }
 }
 
-function brew_alert(when) {
-    brew_clear();
+function brew_alert() {
+    brew_alert_clear();
+
+    var last_coffee = storage.readValue("last_coffee");
+    if (!last_coffee) {
+        return;
+    }
+
+    var when = parseISO(last_coffee);
     var now = new Date();
     if (when < now) {
         console.log("Fresh " + formatDistance(when, now) + " ago");
         return;
     }
+
     console.log("Will be ready in " + formatDistance(when, now));
-    if (client) {
-        var roomId = storage.readValue("coffee_room_id");
-        logged_send(client, roomId, "Coffee is brewing! ⏲️");
-    }
     brew_alert_timeout = setTimeout(() => {
         console.log("Ding!");
-        if (client) {
-            var roomId = storage.readValue("coffee_room_id");
-            logged_send(client, roomId, "🔔 Coffee should be ready! ☕");
-        }
+        var roomId = storage.readValue("coffee_room_id");
+        matrix_send_logged(client, roomId, "🔔 Coffee should be ready! ☕");
     }, differenceInMilliseconds(when, now));
 }
 
+function brew_started_alert() {
+    var roomId = storage.readValue("coffee_room_id");
+    matrix_send_logged(client, roomId, "Coffee is brewing! ⏲️");
+}
+
 function fresh_alert() {
-    if (client) {
-        var roomId = storage.readValue("coffee_room_id");
-        logged_send(client, roomId, "Coffee is fresh now! ☕");
-    }
+    var roomId = storage.readValue("coffee_room_id");
+    matrix_send_logged(client, roomId, "Coffee is fresh now! ☕");
 }
 
 async function handleRequest(req, res) {
@@ -215,6 +224,7 @@ async function handleRequest(req, res) {
         if (brew()) {
             res.writeHead(200);
             res.end('Thanks!');
+            brew_started_alert();
         } else {
             res.writeHead(503);
             res.end('Already brewing');
@@ -257,7 +267,7 @@ async function handleRequest(req, res) {
 
 storage.storeValue("last_command", new Date().toISOString());
 
-if (!storage.readValue("skip_matrix")) {
+if (storage.readValue("enable_matrix")) {
     client = new MatrixClient(
         storage.readValue("homeserver_url"),
         storage.readValue("access_token"),
