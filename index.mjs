@@ -38,8 +38,13 @@ async function initBot() {
         if (last_coffee_date > now) {
             console.log("Coffee in the FUTURE! (" + differenceInMilliseconds(last_coffee_date, now) + "ms)");
             setTimeout(() => {
-                console.log("Ding!");
-                client.sendText(roomId, "🔔 Coffee should be ready! ☕");
+                var current_last_coffee = storage.readValue("last_coffee");
+                if (current_last_coffee == last_coffee) {
+                    console.log("Ding!");
+                    client.sendText(roomId, "🔔 Coffee should be ready! ☕");
+                } else {
+                    console.log("Would ding, but the date changed, so assuming new !brew or !fresh.")
+                }
             }, differenceInMilliseconds(last_coffee_date, now));
         }
     }
