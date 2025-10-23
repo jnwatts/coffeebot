@@ -14,11 +14,11 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "chrono-node": "^2.3.0",
-    "date-fns": "^2.22.1",
-    "jquery": "^3.6.0",
+    "chrono-node": "^2.7.5",
+    "date-fns": "^2.30.0",
+    "jquery": "^3.7.1",
     "log-timestamp": "^0.3.0",
-    "matrix-bot-sdk": "^0.5.18",
-    "parcel": "^2.4.1"
+    "matrix-bot-sdk": "^0.7.1",
+    "parcel": "^2.11.0"
   }
 }

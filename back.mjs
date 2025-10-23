@@ -33,6 +33,7 @@ async function matrix_join() {
         var roomId = storage.readValue("coffee_room_id");
         if (!rooms.includes(roomId))
             client.joinRoom(roomId);
+        client.on("room.message", handleCommand);
     }
 }
 
@@ -64,6 +65,9 @@ async function handleCommand(roomId, event) {
 
     if (body.startsWith("!")) {
         console.log("<< " + roomId + "," + event["sender"] + ": " + body)
+        client.sendReadReceipt(roomId, event["event_id"]);
+    } else {
+        return;
     }
 
     if (body.startsWith("!coffee")) {
@@ -274,18 +278,17 @@ async function handleRequest(req, res) {
 storage.storeValue("last_command", new Date().toISOString());
 
 if (storage.readValue("enable_matrix")) {
+    console.log("Joining matrix...");
     client = new MatrixClient(
         storage.readValue("homeserver_url"),
         storage.readValue("access_token"),
         storage);
-    console.log("Joining matrix...");
     client.start()
         .catch((response) => {
             client = null;
             console.log(response.body);
         })
         .finally(initBot);
-    client.on("room.message", handleCommand);
 } else {
     setTimeout(initBot, 100);
 }
