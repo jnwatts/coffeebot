@@ -163,6 +163,7 @@ function brew_alert(when) {
 
 function fresh_alert() {
     if (client) {
+        var roomId = storage.readValue("coffee_room_id");
         logged_send(client, roomId, "Coffee is fresh now! ☕");
     }
 }
