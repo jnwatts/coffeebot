@@ -129,12 +129,18 @@ function fresh(when) {
 }
 
 function brew() {
+    var last_coffee = storage.readValue("last_coffee");
+    var last_coffee_date = parseISO(last_coffee);
+    var now = new Date();
+    if (isBefore(now, last_coffee_date)) {
+        return false;
+    }
+
     brew_clear();
-        var brew_delay = storage.readValue("brew_delay")
-        storage.storeValue("last_coffee", chrono.parseDate("in " + brew_delay).toISOString());
-        var last_coffee = storage.readValue("last_coffee");
-        var last_coffee_date = parseISO(last_coffee);
-        brew_alert(last_coffee_date);
+    var brew_delay = storage.readValue("brew_delay");
+    storage.storeValue("last_coffee", chrono.parseDate("in " + brew_delay).toISOString());
+    brew_alert(last_coffee_date);
+    return true;
 }
 
 function brew_clear() {
@@ -206,9 +212,13 @@ async function handleRequest(req, res) {
     }
     
     if (url == '/brew') {
-        res.writeHead(200);
-        res.end('Thanks!');
-        brew();
+        if (brew()) {
+            res.writeHead(200);
+            res.end('Thanks!');
+        } else {
+            res.writeHead(503);
+            res.end('Already brewing');
+        }
         log_request = true;
     } else if (url == '/fresh') {
         res.writeHead(200);
