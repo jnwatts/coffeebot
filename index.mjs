@@ -11,7 +11,6 @@ import {
 import http from "http";
 
 const storage = new SimpleFsStorageProvider("coffeebot-storage.json");
-const joinStrat = new SimpleRetryJoinStrategy();
 const client = new MatrixClient(
     storage.readValue("homeserver_url"),
     storage.readValue("access_token"),
