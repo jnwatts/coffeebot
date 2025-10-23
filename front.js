@@ -31,6 +31,10 @@ function init() {
                 clearTimeout(window.coffeebot.status_timeout);
             }
             var last_coffee = new Date(d['last_coffee']);
+            var client_status = d['client_status'];
+            if (client_status && (typeof client_status == 'string' || client_status instanceof String)) {
+                $('#client_status').text(client_status);
+            }
 
             var now = new Date();
             var text = formatDistance(last_coffee, now);
@@ -49,7 +53,7 @@ function init() {
                     text = 'in ' + text;
                 }
             }
-            $('#status').text(text);
+            $('#coffee_status').text(text);
             window.coffeebot.status_timeout = setTimeout(update_status, 500);
         });
     }

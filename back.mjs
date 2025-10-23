@@ -118,6 +118,7 @@ async function handleCommand(roomId, event) {
 function status() {
     var status = {
         "last_coffee": storage.readValue("last_coffee"),
+        "client_status": (client == null ? "(matrix client disconnected!)" : ""),
     };
     return JSON.stringify(status);
 }
@@ -242,9 +243,14 @@ async function handleRequest(req, res) {
         res.end(status());
         log_request = false;
     } else if (url == '/') {
-        var f = fs.readFileSync('dist/front.html', 'utf8');
-        res.writeHead(200);
-        res.end(f);
+        if (!fs.existsSync('dist/front.html')) {
+            res.writeHead(500);
+            res.end('500 - dist folder not built');
+        } else {
+            var f = fs.readFileSync('dist/front.html', 'utf8');
+            res.writeHead(200);
+            res.end(f);
+        }
     } else if (fs.existsSync('dist'+url)) {
         var f = fs.readFileSync('dist'+url, 'utf8');
         if (url.endsWith('.js')) {
@@ -273,7 +279,12 @@ if (storage.readValue("enable_matrix")) {
         storage.readValue("access_token"),
         storage);
     console.log("Joining matrix...");
-    client.start().then(initBot);
+    client.start()
+        .catch((response) => {
+            client = null;
+            console.log(response.body);
+        })
+        .finally(initBot);
     client.on("room.message", handleCommand);
 } else {
     setTimeout(initBot, 100);

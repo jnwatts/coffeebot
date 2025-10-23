@@ -6,10 +6,18 @@ body {
     color: #FFF5EE;
 }
 
-#status {
+#coffee_status {
     font-family: monospace;
     font-size: 3em;
     line-height: 2em;
+    vertical-align: middle;
+}
+
+#client_status {
+    font-family: monospace;
+    font-size: 1em;
+    line-height: 1em;
+    padding-top: 0.5em;
     vertical-align: middle;
 }
 
