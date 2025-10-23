@@ -11,6 +11,7 @@ import {
 } from 'date-fns';
 import * as chrono from 'chrono-node';
 import http from "http";
+import * as log_timestamp from "log-timestamp";
 
 const storage = new SimpleFsStorageProvider("coffeebot-storage.json");
 const client = new MatrixClient(
