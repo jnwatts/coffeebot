@@ -3,6 +3,7 @@
     "access_token": "super-secure-token-from-matrix",
     "homeserver_url": "https://matrix.org",
     "coffee_room_id": "!PwxllucQTuEfovmCCd:matrix.org",
-    "url_prefix": "/coffeebot"
+    "http_prefix": "/coffeebot",
+    "http_port": "8009"
   }
 }

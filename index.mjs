@@ -63,7 +63,7 @@ async function handleCommand(roomId, event) {
 };
 
 async function handleRequest(req, res) {
-    if (req.url == storage.readValue('url_prefix') + '/brew') {
+    if (req.url == storage.readValue('http_prefix') + '/brew') {
         storage.storeValue("last_coffee", new Date().toISOString());
         client.sendText(storage.readValue("coffee_room_id"), "☕⏲️");
         res.writeHead(200);
@@ -75,4 +75,4 @@ async function handleRequest(req, res) {
 }
 
 const server = http.createServer(handleRequest);
-server.listen(8080);
+server.listen(parseInt(storage.readValue("http_port")));
