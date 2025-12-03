@@ -47,14 +47,14 @@ function init() {
                 } else {
                     text = text + ' ago';
                     if (delta < 15*60*1000) {
-                        mood = "🙂";
+                        mood = "😁";
                     } else if (delta < 3*60*60*1000) {
-                        mood = "😐️";
+                        mood = "😃";
                     } else if (delta < 4*60*60*1000) {
-                        mood = "😒";
-                    } else if (delta < 5*60*60*1000) {
-                        mood = "🙁";
-                    } else if (delta < 24*60*60*1000) {
+                        mood = "😐️";
+                    } else if (delta < 6*60*60*1000) {
+                        mood = "☹️";
+                    } else if (delta < 48*60*60*1000) {
                         mood = "😦";
                     } else {
                         mood = "❤️💀☕️";
@@ -63,13 +63,13 @@ function init() {
             } else {
                 if (last_coffee - now < 10*1000) {
                     text = 'just a little bit more...';
-                    mood = "🫣";
+                    mood = "😆";
                 } else if (last_coffee - now < 60*1000) {
                     text = 'almost there...';
-                    mood = "🫢";
+                    mood = "😋";
                 } else {
                     text = 'in ' + text;
-                    mood = "🙂";
+                    mood = "😃";
                 }
             }
             $('#coffee_status').text(text);
