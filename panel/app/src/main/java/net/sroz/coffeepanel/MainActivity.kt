@@ -32,8 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.lifecycleScope
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.StringRequest
@@ -43,7 +41,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import net.sroz.coffeepanel.ui.theme.CoffeePanelTheme
 import org.json.JSONObject
@@ -71,7 +68,7 @@ class MainActivity : ComponentActivity() {
                     onFresh = { action("fresh") },
                     onBrew = { action("brew") }
                 )
-                LocalLifecycleOwner.current.lifecycleScope.launch {
+                LaunchedEffect(this) {
                     updateStatus().collect { status ->
                         try {
                             val o = JSONObject(status)
@@ -168,7 +165,7 @@ fun CoffeeStatus(
 ) {
     val mood = remember { mutableStateOf("\uD83E\uDD14") }
     val text = remember { mutableStateOf("...") }
-    LaunchedEffect(lastCoffee.value) {
+    LaunchedEffect(lastCoffee) {
         lastCoffee.collect { diff ->
             if (diff == null) return@collect
 
