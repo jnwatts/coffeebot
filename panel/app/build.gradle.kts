@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.api.ApkVariantOutputImpl
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -10,7 +12,12 @@ android {
         version = release(36)
     }
 
-
+    applicationVariants.configureEach {
+        outputs.configureEach {
+            (this as? ApkVariantOutputImpl)?.outputFileName =
+                "${applicationId}-${versionName}-${versionCode}-${buildType.name}.apk"
+        }
+    }
 
     defaultConfig {
         applicationId = "net.sroz.coffeepanel"
@@ -47,7 +54,7 @@ android {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5") // Use the latest version
+    coreLibraryDesugaring(libs.desugar.jdk.libs) // Use the latest version
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -63,7 +70,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    implementation("androidx.work:work-runtime-ktx:2.8.1")
-    implementation("com.android.volley:volley:1.2.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.volley)
+    implementation(libs.kotlinx.datetime)
 }
