@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,8 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -83,8 +89,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-
     }
 
     fun updateStatus(): Flow<String> = flow {
@@ -153,7 +157,7 @@ fun Duration.toFuzzyTime(): String {
         }
         inWholeDays == 1L -> "yesterday"
         inWholeDays < 7 -> "$inWholeDays days ago"
-        else -> "a while ago" // Or format as absolute date
+        else -> "a week or more" // Or format as absolute date
     }
 }
 
@@ -207,24 +211,56 @@ fun CoffeeStatus(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .scale(3f),
+                .scale(1f),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Fresh coffee: "+mood.value)
-            Spacer(Modifier.height(20.dp))
-            Text(text.value)
-            Spacer(Modifier.height(20.dp))
+            val suitableFontSize = remember { mutableStateOf(80.sp) }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text("Fresh coffee: ", fontSize = 60.sp)
+                Text(mood.value, fontSize = 80.sp)
+            }
+            Spacer(Modifier.height(50.dp))
+            BasicText(
+                text = text.value,
+                softWrap = false,
+                style = TextStyle(
+                    color = Color(0xFFfff5ee),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = suitableFontSize.value
+                ),
+                onTextLayout = { result ->
+                    if (result.didOverflowWidth && suitableFontSize.value > 10.sp) {
+                        Log.i("UI", "Overflow" + suitableFontSize.value.value.toString())
+                        suitableFontSize.value = maxOf(suitableFontSize.value.value - 1.0, 10.0).sp
+                    }
+                },
+            )
+            Spacer(Modifier.height(50.dp))
             Row {
-                Button(onClick = onFresh) {
-                    Text("Fresh")
-                }
-                Spacer(Modifier.width(20.dp))
-                Button(onClick = onBrew) {
-                    Text("Brew")
-                }
+                CoffeeButton(text = "Fresh!", onClick = onFresh)
+                Spacer(Modifier.width(80.dp))
+                CoffeeButton(text = "Brew!", onClick = onBrew)
             }
         }
+    }
+
+
+}
+
+@Composable
+fun CoffeeButton(text: String = "", onClick: () -> Unit = {}) {
+    Button(
+        onClick = onClick,
+    ) {
+        Text(
+            text = text,
+            fontSize = 60.sp,
+            modifier = Modifier.padding(30.dp)
+        )
     }
 }
 
@@ -261,15 +297,16 @@ fun Context.findActivity(): Activity? {
     return null
 }
 
-//TODO: Refactor this for change to lastCoffee -> Flow<T>
-//@Preview(showBackground = true,
-//    showSystemUi = false,
-//    device = "spec:width=600dp,height=1024dp,dpi=420,isRound=false,chinSize=0dp,orientation=landscape"
-//)
-//@Composable
-//fun GreetingPreview() {
-//    val lastCoffee = remember { mutableStateOf(kotlinx.datetime.Instant.parse("2000-01-01T01:01:01.001Z"))}
-//    CoffeePanelTheme {
-//        CoffeeStatus()
-//    }
-//}
+@Preview(showBackground = true,
+    showSystemUi = false,
+    device = "spec:width=600dp,height=1024dp,dpi=420,isRound=true,chinSize=0dp,orientation=landscape"
+)
+@Composable
+fun GreetingPreview() {
+    val mLastCoffee: MutableStateFlow<Duration?> = MutableStateFlow(Duration.parse("-1s"))
+    val lastCoffee: StateFlow<Duration?> = mLastCoffee
+    CoffeePanelTheme {
+        HideSystemBars()
+        CoffeeStatus(lastCoffee)
+    }
+}
